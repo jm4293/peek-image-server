@@ -48,7 +48,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
     fs.renameSync(req.file.path, originalPath);
 
-    await sharp(originalPath).resize(300, 300).toFormat('webp').toFile(resizedPath);
+    await sharp(originalPath).resize(300, 300, { fit: 'inside' }).toFormat('webp').toFile(resizedPath);
 
     res.json({ resizedImageUrl: `/image/${path.basename(resizedPath)}` });
   } catch (error) {
