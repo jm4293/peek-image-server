@@ -44,7 +44,7 @@ if (!fs.existsSync(resizedDir)) {
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     const originalPath = path.join(originalDir, req.file.filename);
-    const resizedPath = path.join(resizedDir, `resized-${req.file.filename}.webp`);
+    const resizedPath = path.join(resizedDir, `resized-${path.parse(req.file.filename).name}.webp`);
 
     fs.renameSync(req.file.path, originalPath);
 
@@ -55,8 +55,6 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
   }
 });
-
-app.use('/images', express.static(resizedDir));
 
 app.listen(port, () => {
   console.log(`image server ${port} 에서 실행 중입니다.`);
