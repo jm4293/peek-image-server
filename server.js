@@ -50,11 +50,13 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
     await sharp(originalPath).resize(300, 300).toFormat('webp').toFile(resizedPath);
 
-    res.json({ resizedImageUrl: `/images/${path.basename(resizedPath)}` });
+    res.json({ resizedImageUrl: `/image/${path.basename(resizedPath)}` });
   } catch (error) {
     res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
   }
 });
+
+app.use('/image', express.static(resizedDir));
 
 app.listen(port, () => {
   console.log(`image server ${port} 에서 실행 중입니다.`);
