@@ -17,7 +17,15 @@ app.use(cors(corsOptions));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
+    const uploadPath = path.join('uploads', formattedDate);
+
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
@@ -30,34 +38,42 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const originalDir = 'original_images';
-const resizedDir = 'resized_images';
-
-if (!fs.existsSync(originalDir)) {
-  fs.mkdirSync(originalDir);
-}
-
-if (!fs.existsSync(resizedDir)) {
-  fs.mkdirSync(resizedDir);
-}
-
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
-    const originalPath = path.join(originalDir, req.file.filename);
-    const resizedPath = path.join(resizedDir, `resized-${path.parse(req.file.filename).name}.webp`);
+    const now = new Date();
+    const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
+    const originalPath = path.join('original_images', formattedDate, req.file.filename);
+    const resizedPath = path.join(
+      'resized_images',
+      formattedDate,
+      `resized-${path.parse(req.file.filename).name}.webp`,
+    );
+
+    if (!fs.existsSync(path.dirname(originalPath))) {
+      fs.mkdirSync(path.dirname(originalPath), { recursive: true });
+    }
+
+    if (!fs.existsSync(path.dirname(resizedPath))) {
+      fs.mkdirSync(path.dirname(resizedPath), { recursive: true });
+    }
 
     fs.renameSync(req.file.path, originalPath);
 
     await sharp(originalPath).resize(300, 300, { fit: 'inside' }).toFormat('webp').toFile(resizedPath);
 
-    res.json({ resizedImageUrl: `/image/${path.basename(resizedPath)}` });
+    res.json({ resizedImageUrl: `/image/${formattedDate}/${path.basename(resizedPath)}` });
   } catch (error) {
+    console.error('이미지 업로드 및 리사이징 중 오류가 발생했습니다:', error);
     res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
   }
 });
 
-app.use('/image', express.static(resizedDir));
+app.use('/image', express.static('resized_images'));
 
-app.listen(port, () => {
-  console.log(`image server ${port} 에서 실행 중입니다.`);
-});
+app
+  .listen(port, () => {
+    console.log(`image server ${port} 에서 실행 중입니다.`);
+  })
+  .on('error', (err) => {
+    console.error('서버 시작 중 오류가 발생했습니다:', err);
+  });
