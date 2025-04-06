@@ -7,10 +7,12 @@ const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3000;
+// const port = process.env.PORT | 3000;
+const port = process.env.PORT;
 
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || '*',
+  // origin: process.env.CORS_ORIGIN || '*',
+  origin: '*',
 };
 
 app.use(cors(corsOptions));
@@ -39,6 +41,12 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('image'), async (req, res) => {
+  const { width, height } = req.body;
+
+  if (!width || !height) {
+    return res.status(400).send('width와 height는 필수 값입니다.');
+  }
+
   try {
     const now = new Date();
     const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
@@ -59,7 +67,10 @@ app.post('/upload', upload.single('image'), async (req, res) => {
 
     fs.renameSync(req.file.path, originalPath);
 
-    await sharp(originalPath).resize(300, 300, { fit: 'inside' }).toFormat('webp').toFile(resizedPath);
+    await sharp(originalPath)
+      .resize(parseInt(width), parseInt(height), { fit: 'inside' })
+      .toFormat('webp')
+      .toFile(resizedPath);
 
     res.json({ resizedImageUrl: `/image/${formattedDate}/${path.basename(resizedPath)}` });
   } catch (error) {
