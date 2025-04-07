@@ -5,41 +5,6 @@ on:
   push:
     branches: [main]
 
-#jobs:
-#  deploy:
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: Checkout code
-#        uses: actions/checkout@v3
-#
-#      - name: executing remote ssh commands
-#        uses: appleboy/ssh-action@master
-#        with:
-#          host: ${{ secrets.HOST }}
-#          username: ${{ secrets.REMOTE_USER }}
-#          key: ${{ secrets.REMOTE_PRIVATE_KEY }}
-#          port: ${{ secrets.REMOTE_SSH_PORT }}
-#          script: |
-#            echo "Deploying to remote server..."
-#            # Navigate to the project directorypeek-prod-key.pem
-#            cd /path/to/your/project || exit 1
-#
-#            # Pull the latest changes from the main branch
-#            git pull origin main
-#
-#            # Install dependencies
-#            npm install
-#
-#            # Build the project
-#            npm run build
-#
-#            # Restart the server (if applicable)
-#            pm2 restart your-app-name || exit 1
-#
-#            echo "Deployment completed successfully!"
-
-jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
@@ -93,6 +58,10 @@ jobs:
               if [ ! -d ".git" ]; then
                 git clone https://github.com/jm4293/peek-image-server.git .
               fi
+              
+              pwd
+              
+              ls -a -l
             
               cd peek-image-server || exit 1
                             
