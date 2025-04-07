@@ -5,34 +5,33 @@ on:
   push:
     branches: [main]
 
+env:
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+  AWS_REGION: ap-northeast-2
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: List files before checkout
-        run: ls -al
-
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: List files after checkout
-        run: ls -al
+      - name: Make zip file
+        run: zip -r ./$GITHUB_SHA.zip .
+        shell: bash
 
-      - name: List files in the current directory
-        run: cat .github/workflows/deploy.yml
-
-      - name: Get Github Actions IP
+      - name: Github Actions IP 얻기
         id: ip
         uses: haythem/public-ip@v1.3
 
-      - name: Configure AWS Credentials
+      - name: AWS Credentials(자격증명) 구성
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ap-northeast-2
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: Add Github Actions IP to Security group
+      - name: Github Actions IP to Security group(보안그룹) 추가
         run: |
           aws ec2 authorize-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
         env:
@@ -40,49 +39,53 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      - name: executing remote ssh commands using key
-        uses: appleboy/ssh-action@master
-        with:
-            host: ${{ secrets.REMOTE_HOST }}
-            username: ${{ secrets.REMOTE_USER }}
-            key: ${{ secrets.REMOTE_PRIVATE_KEY }}
-            port: ${{ secrets.REMOTE_SSH_PORT }}
-            script: |
-              echo "Deploying to remote server..."
-              # Navigate to the project directory
-              cd ~/ || exit 1
-              
-              pwd
-              
-              ls -a -l
-              
-              # Remove all contents in the directory
-              rm -rf ~/peek-image-server
-              
-              git clone https://github.com/jm4293/peek-image-server.git
-       
-              pwd
-              
-              ls -a -l
-            
-              cd peek-image-server || exit 1
-              
-              pwd
-              
-              ls -a -l
-                            
-              # Install dependencies
-              npm install
-            
-              # Install pm2 globally
-              npm install -g pm2
-                
-              # Start the server using pm2
-              pm2 start server.js --name peek-image-server
-                
-              echo "Deployment completed successfully!"
+      - name: S3에 zip 파일 업로드
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$S3_BUCKET_NAME/$GITHUB_SHA.zip
 
-      - name: Remove Github Actions IP From Security Group
+
+#      - name: executing remote ssh commands using key
+#        uses: appleboy/ssh-action@master
+#        with:
+#            host: ${{ secrets.REMOTE_HOST }}
+#            username: ${{ secrets.REMOTE_USER }}
+#            key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+#            port: ${{ secrets.REMOTE_SSH_PORT }}
+#            script: |
+#              echo "Deploying to remote server..."
+#              # Navigate to the project directory
+#              cd ~/ || exit 1
+#
+#              pwd
+#
+#              ls -a -l
+#
+#              # Remove all contents in the directory
+#              rm -rf ~/peek-image-server
+#
+#              git clone https://github.com/jm4293/peek-image-server.git
+#
+#              pwd
+#
+#              ls -a -l
+#
+#              cd peek-image-server || exit 1
+#
+#              pwd
+#
+#              ls -a -l
+#
+#              # Install dependencies
+#              npm install
+#
+#              # Install pm2 globally
+#              npm install -g pm2
+#
+#              # Start the server using pm2
+#              pm2 start server.js --name peek-image-server
+#
+#              echo "Deployment completed successfully!"
+
+      - name: Github Actions IP From Security Group(보안그룹) 제거
         run: |
           aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
         env:
