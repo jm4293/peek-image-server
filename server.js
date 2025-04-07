@@ -7,12 +7,10 @@ const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
-// const port = process.env.PORT | 3000;
-const port = process.env.PORT;
+const port = process.env.PORT | 3000;
 
 const corsOptions = {
-  // origin: process.env.CORS_ORIGIN || '*',
-  origin: '*',
+  origin: process.env.CORS_ORIGIN || '*',
 };
 
 app.use(cors(corsOptions));
@@ -40,7 +38,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.post('/upload', upload.single('image'), async (req, res) => {
+app.post('/upload-image', upload.single('image'), async (req, res) => {
   const { width, height } = req.body;
 
   if (!width || !height) {
