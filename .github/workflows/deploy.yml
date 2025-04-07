@@ -73,14 +73,8 @@ jobs:
                             
               # Install dependencies
               npm install
-              
-#              # Build the project
-#              npm run build
-#
-#              # Restart the server (if applicable)
-#              pm2 restart peek-image-server || exit 1
-
-                npm run start || exit 1
+            
+              npm run start || exit 1
               
               echo "Deployment completed successfully!"
 
