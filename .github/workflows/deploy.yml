@@ -50,11 +50,11 @@ jobs:
             script: |
               echo "Deploying to remote server..."
               # Navigate to the project directory
-              cd /var/current || exit 1
+              cd ~/ || exit 1
               
               # Remove all contents in the directory
-              rm -rf ./*
-
+              rm -rf ~/peek-image-server
+              
               git clone https://github.com/jm4293/peek-image-server.git .
        
               pwd
