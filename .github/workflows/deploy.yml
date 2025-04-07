@@ -1,5 +1,5 @@
 name: main branch auto ci process script
-run-name: ${{ github.actor }} - ${{ github.event_name }} - ${{ github.event.action }} is learning GitHub Actions
+run-name: ${{ github.actor }} - ${{ github.event_name }} - ${{ github.ref_name }} is learning GitHub Actions
 
 on:
   push:
@@ -47,5 +47,5 @@ jobs:
       - run: ls -al
       - uses: actions/checkout@v3
       - run: ls -al
-      - run: cat .github/workflows/checkout.yml
+      - run: cat .github/workflows/deploy.yml
 
