@@ -54,17 +54,18 @@ jobs:
               
               # Remove all contents in the directory
               rm -rf ./*
-              
-              # Check if the repository is already cloned
-              if [ ! -d ".git" ]; then
-                git clone https://github.com/jm4293/peek-image-server.git .
-              fi
-              
+
+              git clone https://github.com/jm4293/peek-image-server.git .
+       
               pwd
               
               ls -a -l
             
               cd peek-image-server || exit 1
+              
+              pwd
+              
+              ls -a -l
                             
               # Install dependencies
               npm install
