@@ -86,14 +86,16 @@ jobs:
               # Navigate to the project directory
               cd /var/current || exit 1
               
+              # Remove all contents in the directory
+              rm -rf ./*
+              
               # Check if the repository is already cloned
               if [ ! -d ".git" ]; then
                 git clone https://github.com/jm4293/peek-image-server.git .
               fi
-              
-              # Pull the latest changes from the main branch
-              git pull origin main
-              
+            
+              cd peek-image-server || exit 1
+                            
               # Install dependencies
               npm install
               
