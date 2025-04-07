@@ -82,23 +82,32 @@ jobs:
             key: ${{ secrets.REMOTE_PRIVATE_KEY }}
             port: ${{ secrets.REMOTE_SSH_PORT }}
             script: |
-                echo "Deploying to remote server..."
-                # Navigate to the project directory
-                cd /var/current || exit 1
-    
-                # Pull the latest changes from the main branch
-                git pull origin main
-    
-                # Install dependencies
-                npm install
-
-                # Build the project
-                npm run build
-
-                # Restart the server (if applicable)
-                pm2 restart your-app-name || exit 1
-
-                echo "Deployment completed successfully!"
+              echo "Deploying to remote server..."
+              # Navigate to the project directory
+              cd /var/current || exit 1
+              
+              # Ensure the directory is a git repository
+              if [ ! -d ".git" ]; then
+              echo "Not a git repository. Exiting..."
+              exit 1
+              fi
+              
+              # Pull the latest changes from the main branch
+              git pull origin main
+              
+              # Fix file permissions
+              chmod -R 755 /var/current
+              
+              # Install dependencies
+              npm install
+              
+              # Build the project
+              npm run build
+              
+              # Restart the server (if applicable)
+              pm2 restart your-app-name || exit 1
+              
+              echo "Deployment completed successfully!"
 
       - name: Remove Github Actions IP From Security Group
         run: |
