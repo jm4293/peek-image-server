@@ -52,10 +52,14 @@ jobs:
               # Navigate to the project directory
               cd ~/ || exit 1
               
+              pwd
+              
+              ls -a -l
+              
               # Remove all contents in the directory
               rm -rf ~/peek-image-server
               
-              git clone https://github.com/jm4293/peek-image-server.git .
+              git clone https://github.com/jm4293/peek-image-server.git
        
               pwd
               
