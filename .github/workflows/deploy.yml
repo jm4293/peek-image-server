@@ -42,24 +42,33 @@ jobs:
       - name: S3에 zip 파일 업로드
         run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$S3_BUCKET_NAME/peek-prod-code-deploy/$GITHUB_SHA.zip
 
-      - name: S3에서 ZIP 파일 다운로드
-        run: aws s3 cp s3://$S3_BUCKET_NAME/peek-prod-code-deploy/$GITHUB_SHA.zip ~/project.zip
-#
-      - name: 압축 해제
-        run: unzip ~/project.zip -d ~/project
-#
-      - name: 프로젝트 디렉토리로 이동
-        run: cd ~/project
-#
-#      - name: 의존성 설치
-#        run: npm install
-#
-#      - name: 빌드 실행
-#        run: npm run build
-#
-#      - name: 빌드 완료 메시지 출력
-#        run: echo "Build completed successfully!"
-#
+      - name: executing remote ssh commands using key
+        uses: appleboy/ssh-action@master
+        with:
+            host: ${{ secrets.REMOTE_HOST }}
+            username: ${{ secrets.REMOTE_USER }}
+            key: ${{ secrets.REMOTE_PRIVATE_KEY }}
+            port: ${{ secrets.REMOTE_SSH_PORT }}
+            script: |
+              echo "Deploying to remote server..."
+              # Navigate to the project directory
+              cd ~/ || exit 1
+
+              # Remove all contents in the directory
+              rm -rf ~/peek-image-server
+
+              git clone https://github.com/jm4293/peek-image-server.git
+
+              cd peek-image-server || exit 1
+
+              npm install
+              
+              cp .env/.env.image peek-image-server/.env
+
+              pm2 start server.js --name peek-image-server
+
+              echo "Deployment completed successfully!"
+
 #      - name: Github Actions IP From Security Group(보안그룹) 제거
 #        run: |
 #          aws ec2 revoke-security-group-ingress --group-id ${{ secrets.AWS_SG_ID }} --protocol tcp --port 22 --cidr ${{ steps.ip.outputs.ipv4 }}/32
