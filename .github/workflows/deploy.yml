@@ -40,7 +40,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: S3에 zip 파일 업로드
-        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$S3_BUCKET_NAME/peek-prod-code-deploy/$GITHUB_SHA.zip
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.zip s3://$S3_BUCKET_NAME/peek-prod-zip-image/$GITHUB_SHA.zip
 
       - name: ssh 접속 및 배포
         uses: appleboy/ssh-action@master
@@ -63,7 +63,7 @@ jobs:
 
               npm install
               
-              cp .env/.env.image peek-image-server/.env
+              cp ~/.env/.env.image ~/peek-image-server/.env
 
               pm2 start server.js --name peek-image-server
 
