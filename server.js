@@ -6,6 +6,17 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 
+// 필요한 폴더 목록
+const requiredDirectories = ['uploads', 'original_images', 'resized_images'];
+
+// 서버 시작 시 필요한 폴더 생성
+requiredDirectories.forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+    console.log(`폴더 생성: ${dir}`);
+  }
+});
+
 const app = express();
 const port = process.env.PORT || 3000;
 
@@ -79,6 +90,10 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
 
 app.use('/image', express.static('resized_images'));
 
+app.use('/image', (req, res) => {
+  res.status(404).send('요청하신 이미지 파일을 찾을 수 없습니다.');
+});
+
 app
   .listen(port, () => {
     console.log(`image server ${port} 에서 실행 중입니다.`);
@@ -86,4 +101,3 @@ app
   .on('error', (err) => {
     console.error('서버 시작 중 오류가 발생했습니다:', err);
   });
-
