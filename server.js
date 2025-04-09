@@ -7,7 +7,7 @@ const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT | 3000;
+const port = process.env.PORT || 3000;
 
 const corsOptions = {
   origin: process.env.CORS_ORIGIN || '*',
@@ -86,3 +86,4 @@ app
   .on('error', (err) => {
     console.error('서버 시작 중 오류가 발생했습니다:', err);
   });
+
