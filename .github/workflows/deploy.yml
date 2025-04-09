@@ -56,7 +56,9 @@ jobs:
 
               # Remove all contents in the directory
               rm -rf ~/peek-image-server
-
+              
+              pm2 delete peek-image-server
+  
               git clone https://github.com/jm4293/peek-image-server.git
 
               cd peek-image-server || exit 1
