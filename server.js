@@ -7,7 +7,7 @@ const fs = require('fs');
 const cors = require('cors');
 
 // 필요한 폴더 목록
-const requiredDirectories = ['uploads', 'original_images', 'resized_images'];
+const requiredDirectories = ['original_images', 'resized_images'];
 
 // 서버 시작 시 필요한 폴더 생성
 requiredDirectories.forEach((dir) => {
@@ -21,7 +21,6 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 const corsOptions = {
-  // origin: process.env.CORS_ORIGIN || '*',
   origin: '*',
 };
 
@@ -32,7 +31,7 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const now = new Date();
     const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
-    const uploadPath = path.join('uploads', formattedDate);
+    const uploadPath = path.join('original_images', formattedDate);
 
     if (!fs.existsSync(uploadPath)) {
       fs.mkdirSync(uploadPath, { recursive: true });
@@ -51,7 +50,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.post('/upload-image', upload.single('image'), async (req, res) => {
+app.post('/upload', upload.single('image'), async (req, res) => {
   const { width, height } = req.body;
 
   if (!width || !height) {
@@ -67,10 +66,6 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
       formattedDate,
       `resized-${path.parse(req.file.filename).name}.webp`,
     );
-
-    if (!fs.existsSync(path.dirname(originalPath))) {
-      fs.mkdirSync(path.dirname(originalPath), { recursive: true });
-    }
 
     if (!fs.existsSync(path.dirname(resizedPath))) {
       fs.mkdirSync(path.dirname(resizedPath), { recursive: true });
@@ -90,11 +85,7 @@ app.post('/upload-image', upload.single('image'), async (req, res) => {
   }
 });
 
-app.use('/image', express.static('resized_images'));
-
-app.use('/image', (req, res) => {
-  res.status(404).send('요청하신 이미지 파일을 찾을 수 없습니다.');
-});
+app.use('/download', express.static('resized_images'));
 
 app
   .listen(port, () => {
