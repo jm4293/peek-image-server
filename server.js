@@ -1,6 +1,8 @@
 require('dotenv').config();
+
 const express = require('express');
 const multer = require('multer');
+const crypto = require('crypto');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
@@ -29,22 +31,13 @@ app.use(cors(corsOptions));
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
-    const uploadPath = path.join('original_images', formattedDate);
-
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-
-    cb(null, uploadPath);
+    cb(null, 'original_images');
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    const randomName = crypto.randomBytes(32).toString('hex');
 
-    cb(null, `${file.fieldname}-${Date.now()}_${formattedDate}${ext}`);
+    cb(null, `${randomName}${ext}`);
   },
 });
 
@@ -58,14 +51,9 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const now = new Date();
-    const formattedDate = `${now.getFullYear()}.${(now.getMonth() + 1).toString().padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')}`;
-    const originalPath = path.join('original_images', formattedDate, req.file.filename);
-    const resizedPath = path.join(
-      'resized_images',
-      formattedDate,
-      `resized-${path.parse(req.file.filename).name}.webp`,
-    );
+    const originalPath = path.join('original_images', req.file.filename);
+
+    const resizedPath = path.join('resized_images', `${path.parse(req.file.filename).name}.webp`);
 
     if (!fs.existsSync(path.dirname(resizedPath))) {
       fs.mkdirSync(path.dirname(resizedPath), { recursive: true });
@@ -78,14 +66,14 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       .toFormat('webp')
       .toFile(resizedPath);
 
-    res.json({ resizedImageUrl: `/${formattedDate}/${path.basename(resizedPath)}` });
+    res.json({ resizedImageUrl: `/resized_images/${path.basename(resizedPath)}` });
   } catch (error) {
     console.error('이미지 업로드 및 리사이징 중 오류가 발생했습니다:', error);
     res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
   }
 });
 
-app.use('/download', express.static('resized_images'));
+app.use('/download/resized_images', express.static('resized_images'));
 
 app
   .listen(port, () => {
