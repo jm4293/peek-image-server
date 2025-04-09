@@ -21,9 +21,11 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 const corsOptions = {
-  origin: process.env.CORS_ORIGIN || '*',
+  // origin: process.env.CORS_ORIGIN || '*',
+  origin: '*',
 };
 
+app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 const storage = multer.diskStorage({
