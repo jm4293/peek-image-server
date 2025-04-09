@@ -78,7 +78,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       .toFormat('webp')
       .toFile(resizedPath);
 
-    res.json({ resizedImageUrl: `/image/${formattedDate}/${path.basename(resizedPath)}` });
+    res.json({ resizedImageUrl: `/${formattedDate}/${path.basename(resizedPath)}` });
   } catch (error) {
     console.error('이미지 업로드 및 리사이징 중 오류가 발생했습니다:', error);
     res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
