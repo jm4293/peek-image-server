@@ -8,14 +8,11 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 
-// 필요한 폴더 목록
-const requiredDirectories = ['original_images', 'resized_images'];
+const SAVE_DIR = ['o', 'r'];
 
-// 서버 시작 시 필요한 폴더 생성
-requiredDirectories.forEach((dir) => {
+SAVE_DIR.forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
-    console.log(`폴더 생성: ${dir}`);
   }
 });
 
@@ -29,51 +26,114 @@ const corsOptions = {
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'original_images');
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const randomName = crypto.randomBytes(32).toString('hex');
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, SAVE_DIR[0]);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
 
-    cb(null, `${randomName}${ext}`);
+      const randomName = crypto.randomBytes(32).toString('hex');
+
+      cb(null, `${randomName}${ext}`);
+    },
+  }),
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['.jpg', '.jpeg', '.png'];
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
   },
 });
 
-const upload = multer({ storage: storage });
+const resizeImage = async (fileName, width) => {
+  const inputPath = path.join(SAVE_DIR[0], fileName);
+
+  const parsed = path.parse(fileName);
+
+  const outputDir = SAVE_DIR[1];
+
+  const outputFilePath = path.join(outputDir, `${parsed.name}_${width}.webp`);
+
+  await sharp(inputPath)
+    .resize(parseInt(width, 10), null, { fit: 'inside' })
+    .toFormat('webp')
+    .toFile(outputFilePath);
+
+  return outputFilePath.split(path.sep).pop();
+};
 
 app.post('/upload', upload.single('image'), async (req, res) => {
-  const { width, height } = req.body;
-
-  if (!width || !height) {
-    return res.status(400).send('width와 height는 필수 값입니다.');
+  if (!req.file) {
+    return res
+      .status(400)
+      .json({ message: 'jpg, jpeg, png 파일만 업로드할 수 있습니다.' });
   }
 
+  const { width } = req.body;
+
+  if (!width || isNaN(width) || width <= 0) {
+    return res.status(400).json({ message: '유효한 너비를 입력해주세요.' });
+  }
+
+  const resizedFile = await resizeImage(path.join(req.file.filename), width);
+
+  res.json({
+    message: '파일이 성공적으로 저장되었습니다.',
+    filename: req.file.filename,
+  });
+});
+
+app.get('/', async (req, res) => {
+  const { filename, width } = req.query;
+
+  if (!filename || !width || isNaN(width) || width <= 0) {
+    return res
+      .status(400)
+      .json({ message: 'filename과 유효한 width 쿼리가 필요합니다.' });
+  }
+
+  const parsed = path.parse(filename);
+  const resizedFileName = `${parsed.name}_${width}.webp`;
+  const resizedFilePath = path.join(SAVE_DIR[1], resizedFileName);
+
+  if (fs.existsSync(resizedFilePath)) {
+    res.set('Content-Type', 'image/webp');
+    return res.sendFile(path.resolve(resizedFilePath));
+  }
+
+  const baseName = path.parse(filename).name;
+  const files = fs.readdirSync(SAVE_DIR[0]);
+  const originalFile = files.find((f) => path.parse(f).name === baseName);
+
+  if (!originalFile) {
+    return res.status(404).json({ message: '원본 파일이 존재하지 않습니다.' });
+  }
+
+  const originalFilePath = path.join(SAVE_DIR[0], originalFile);
+
   try {
-    const originalPath = path.join('original_images', req.file.filename);
-
-    const resizedPath = path.join('resized_images', `${path.parse(req.file.filename).name}.webp`);
-
-    if (!fs.existsSync(path.dirname(resizedPath))) {
-      fs.mkdirSync(path.dirname(resizedPath), { recursive: true });
-    }
-
-    fs.renameSync(req.file.path, originalPath);
-
-    await sharp(originalPath)
-      .resize(parseInt(width), parseInt(height), { fit: 'inside' })
+    await sharp(originalFilePath)
+      .resize(parseInt(width, 10), null, { fit: 'inside' })
       .toFormat('webp')
-      .toFile(resizedPath);
+      .toFile(resizedFilePath);
 
-    res.json({ resizedImageUrl: `/resized_images/${path.basename(resizedPath)}` });
-  } catch (error) {
-    console.error('이미지 업로드 및 리사이징 중 오류가 발생했습니다:', error);
-    res.status(500).send('이미지 업로드 및 리사이징 중 오류가 발생했습니다.');
+    res.set('Content-Type', 'image/webp');
+    res.sendFile(path.resolve(resizedFilePath));
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: '이미지 리사이즈 중 오류가 발생했습니다.' });
   }
 });
 
-app.use('/download/resized_images', express.static('resized_images'));
+app.use('/', express.static(SAVE_DIR[1]));
 
 app
   .listen(port, () => {
