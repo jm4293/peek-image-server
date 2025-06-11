@@ -11,6 +11,7 @@
     "sharp": "^0.33.5"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "node_modules-rm": "rm -rf node_modules"
   }
 }

@@ -52,51 +52,31 @@ const upload = multer({
   },
 });
 
-const resizeImage = async (fileName, width) => {
-  const inputPath = path.join(SAVE_DIR[0], fileName);
+app.post('/', (req, res) => {
+  upload.single('image')(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res
+        .status(400)
+        .json({ message: '파일 업로드 오류', error: err.message });
+    } else if (err) {
+      return res.status(500).json({ message: '서버 오류', error: err.message });
+    }
 
-  const parsed = path.parse(fileName);
+    console.log('파일 업로드 성공:', req.file);
 
-  const outputDir = SAVE_DIR[1];
-
-  const outputFilePath = path.join(outputDir, `${parsed.name}_${width}.webp`);
-
-  await sharp(inputPath)
-    .resize(parseInt(width, 10), null, { fit: 'inside' })
-    .toFormat('webp')
-    .toFile(outputFilePath);
-
-  return outputFilePath.split(path.sep).pop();
-};
-
-app.post('/upload', upload.single('image'), async (req, res) => {
-  if (!req.file) {
-    return res
-      .status(400)
-      .json({ message: 'jpg, jpeg, png 파일만 업로드할 수 있습니다.' });
-  }
-
-  const { width } = req.body;
-
-  if (!width || isNaN(width) || width <= 0) {
-    return res.status(400).json({ message: '유효한 너비를 입력해주세요.' });
-  }
-
-  const resizedFile = await resizeImage(path.join(req.file.filename), width);
-
-  res.json({
-    message: '파일이 성공적으로 저장되었습니다.',
-    filename: req.file.filename,
+    res.json({
+      message: '파일이 성공적으로 저장되었습니다.',
+      filename: req.file.filename.split('.')[0],
+      mimetype: req.file.mimetype,
+    });
   });
 });
 
 app.get('/', async (req, res) => {
-  const { filename, width } = req.query;
+  const { filename, width = 200 } = req.query;
 
-  if (!filename || !width || isNaN(width) || width <= 0) {
-    return res
-      .status(400)
-      .json({ message: 'filename과 유효한 width 쿼리가 필요합니다.' });
+  if (!filename) {
+    return res.status(400).json({ message: 'filename 쿼리가 필요합니다.' });
   }
 
   const parsed = path.parse(filename);
@@ -132,8 +112,6 @@ app.get('/', async (req, res) => {
       .json({ message: '이미지 리사이즈 중 오류가 발생했습니다.' });
   }
 });
-
-app.use('/', express.static(SAVE_DIR[1]));
 
 app
   .listen(port, () => {
