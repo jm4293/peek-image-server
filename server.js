@@ -63,21 +63,21 @@ app.post('/', (req, res) => {
         console.log('파일 업로드 성공:', req.file);
 
         res.json({
-            message: '파일이 성공적으로 저장되었습니다.',
-            filename: req.file.filename.split('.')[0],
+            // message: '파일이 성공적으로 저장되었습니다.',
+            name: req.file.filename.split('.')[0],
             mimetype: req.file.mimetype,
         });
     });
 });
 
 app.get('/', async (req, res) => {
-    const { filename, width = 200 } = req.query;
+    const { name, width = 200 } = req.query;
 
-    if (!filename) {
-        return res.status(400).json({ message: 'filename 쿼리가 필요합니다.' });
+    if (!name) {
+        return res.status(400).json({ message: 'name 쿼리가 필요합니다.' });
     }
 
-    const parsed = path.parse(filename);
+    const parsed = path.parse(name);
     const resizedFileName = `${parsed.name}_${width}.webp`;
     const resizedFilePath = path.join(SAVE_DIR[1], resizedFileName);
 
@@ -86,7 +86,7 @@ app.get('/', async (req, res) => {
         return res.sendFile(path.resolve(resizedFilePath));
     }
 
-    const baseName = path.parse(filename).name;
+    const baseName = path.parse(name).name;
     const files = fs.readdirSync(SAVE_DIR[0]);
     const originalFile = files.find((f) => path.parse(f).name === baseName);
 
