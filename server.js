@@ -11,112 +11,106 @@ const cors = require('cors');
 const SAVE_DIR = ['o', 'r'];
 
 SAVE_DIR.forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
 });
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 const corsOptions = {
-  origin: '*',
+    origin: '*',
 };
 
 app.options('*', cors(corsOptions));
 app.use(cors(corsOptions));
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, SAVE_DIR[0]);
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => {
+            cb(null, SAVE_DIR[0]);
+        },
+        filename: (req, file, cb) => {
+            const ext = path.extname(file.originalname);
+
+            const randomName = crypto.randomBytes(32).toString('hex');
+
+            cb(null, `${randomName}${ext}`);
+        },
+    }),
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = ['.jpg', '.jpeg', '.png'];
+
+        const ext = path.extname(file.originalname).toLowerCase();
+
+        if (allowedTypes.includes(ext)) {
+            cb(null, true);
+        } else {
+            cb(null, false);
+        }
     },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname);
-
-      const randomName = crypto.randomBytes(32).toString('hex');
-
-      cb(null, `${randomName}${ext}`);
-    },
-  }),
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['.jpg', '.jpeg', '.png'];
-
-    const ext = path.extname(file.originalname).toLowerCase();
-
-    if (allowedTypes.includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(null, false);
-    }
-  },
 });
 
 app.post('/', (req, res) => {
-  upload.single('image')(req, res, async (err) => {
-    if (err instanceof multer.MulterError) {
-      return res
-        .status(400)
-        .json({ message: '파일 업로드 오류', error: err.message });
-    } else if (err) {
-      return res.status(500).json({ message: '서버 오류', error: err.message });
-    }
+    upload.single('image')(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ message: '파일 업로드 오류', error: err.message });
+        } else if (err) {
+            return res.status(500).json({ message: '서버 오류', error: err.message });
+        }
 
-    console.log('파일 업로드 성공:', req.file);
+        console.log('파일 업로드 성공:', req.file);
 
-    res.json({
-      message: '파일이 성공적으로 저장되었습니다.',
-      filename: req.file.filename.split('.')[0],
-      mimetype: req.file.mimetype,
+        res.json({
+            message: '파일이 성공적으로 저장되었습니다.',
+            filename: req.file.filename.split('.')[0],
+            mimetype: req.file.mimetype,
+        });
     });
-  });
 });
 
 app.get('/', async (req, res) => {
-  const { filename, width = 200 } = req.query;
+    const { filename, width = 200 } = req.query;
 
-  if (!filename) {
-    return res.status(400).json({ message: 'filename 쿼리가 필요합니다.' });
-  }
+    if (!filename) {
+        return res.status(400).json({ message: 'filename 쿼리가 필요합니다.' });
+    }
 
-  const parsed = path.parse(filename);
-  const resizedFileName = `${parsed.name}_${width}.webp`;
-  const resizedFilePath = path.join(SAVE_DIR[1], resizedFileName);
+    const parsed = path.parse(filename);
+    const resizedFileName = `${parsed.name}_${width}.webp`;
+    const resizedFilePath = path.join(SAVE_DIR[1], resizedFileName);
 
-  if (fs.existsSync(resizedFilePath)) {
-    res.set('Content-Type', 'image/webp');
-    return res.sendFile(path.resolve(resizedFilePath));
-  }
+    if (fs.existsSync(resizedFilePath)) {
+        res.set('Content-Type', 'image/webp');
+        return res.sendFile(path.resolve(resizedFilePath));
+    }
 
-  const baseName = path.parse(filename).name;
-  const files = fs.readdirSync(SAVE_DIR[0]);
-  const originalFile = files.find((f) => path.parse(f).name === baseName);
+    const baseName = path.parse(filename).name;
+    const files = fs.readdirSync(SAVE_DIR[0]);
+    const originalFile = files.find((f) => path.parse(f).name === baseName);
 
-  if (!originalFile) {
-    return res.status(404).json({ message: '원본 파일이 존재하지 않습니다.' });
-  }
+    if (!originalFile) {
+        return res.status(404).json({ message: '원본 파일이 존재하지 않습니다.' });
+    }
 
-  const originalFilePath = path.join(SAVE_DIR[0], originalFile);
+    const originalFilePath = path.join(SAVE_DIR[0], originalFile);
 
-  try {
-    await sharp(originalFilePath)
-      .resize(parseInt(width, 10), null, { fit: 'inside' })
-      .toFormat('webp')
-      .toFile(resizedFilePath);
+    try {
+        await sharp(originalFilePath)
+            .resize(parseInt(width, 10), null, { fit: 'inside' })
+            .toFormat('webp')
+            .toFile(resizedFilePath);
 
-    res.set('Content-Type', 'image/webp');
-    res.sendFile(path.resolve(resizedFilePath));
-  } catch (err) {
-    res
-      .status(500)
-      .json({ message: '이미지 리사이즈 중 오류가 발생했습니다.' });
-  }
+        res.set('Content-Type', 'image/webp');
+        res.sendFile(path.resolve(resizedFilePath));
+    } catch (err) {
+        res.status(500).json({ message: '이미지 리사이즈 중 오류가 발생했습니다.' });
+    }
 });
 
-app
-  .listen(port, () => {
+app.listen(port, () => {
     console.log(`image server ${port} 에서 실행 중입니다.`);
-  })
-  .on('error', (err) => {
+}).on('error', (err) => {
     console.error('서버 시작 중 오류가 발생했습니다:', err);
-  });
+});
